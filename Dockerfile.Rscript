@@ -1,0 +1,24 @@
+# 1) base image with R
+FROM r-base:4.4.0
+
+# 2) set a working dir inside the container
+WORKDIR /app
+
+# 3) system deps (optional, but good for readr/dplyr/tidyverse-type pkgs)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 4) copy the package installer first (better cache)
+COPY install_packages.R /app/install_packages.R
+
+# 5) install R packages
+RUN Rscript /app/install_packages.R
+
+# 6) now copy the rest of the project (src/, etc.)
+COPY . /app
+
+# 7) default: run your R pipeline
+CMD ["Rscript", "/app/src/R_code/main.R"]
