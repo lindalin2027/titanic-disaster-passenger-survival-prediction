@@ -12,7 +12,9 @@ Both do the same basic thing:
 1. load `train.csv` and `test.csv`
 2. do simple cleaning / feature engineering
 3. fit a logistic model (Python: `sklearn`, R: `glm`)
-4. predict survival on the Kaggle test set
+4. predict survival on the Kaggle test set, the output will be predicted survival for each passenger, which contains two columns:
+    - **PassengerId**: the unique ID for each passenger in the test set.
+    - **Survived**: predicted survival for the corresponding passenger (1 for survived, 0 for not survived).
 5. write predictions to `src/data/...csv`
 
 You can run either pipeline **locally** or **in Docker**.
@@ -27,7 +29,6 @@ You can run either pipeline **locally** or **in Docker**.
 - A Kaggle account to download the Titanic data
 
 
-
 ## 2. Get the data from Kaggle
 
 1. Go to the Kaggle competition page:  
@@ -35,11 +36,11 @@ You can run either pipeline **locally** or **in Docker**.
 2. Download:
    - `train.csv`
    - `test.csv`
-3. In **your local clone** of this repo, create the `data` directory under `src` directory, you can either run following bash command in your project root, or manually create one:
+3. In **your local clone** of this repo, create the `data` directory under `src` directory, you can either run following bash command in your project root, or manually create `data` folder within `src` folder:
 
    ```bash
    mkdir -p src/data
-4. Put the two CSVs in src/data folder. 
+4. Put the two CSVs in `src/data` folder. 
 
     If `src/data/train.csv` or `src/data/test.csv` is missing, both scripts will fail, by design.
 
@@ -74,6 +75,10 @@ If you just run the container without mounting, the prediction file will be crea
 - mounts your local `src/data` → `container /app/src/data`
 - script runs: `python src/python_code/main.py`
 - output will be written to: `src/data/survival_predictions.csv` on your machine (not only inside the container).
+
+**Expected output:**
+- you will see the data loading, training, and prediction processes in your terminal
+- you will find a new .csv file called `survival_predictions.csv` in your `src/data` folder
 
 ## 4. Run the R pipeline with Docker
 
@@ -129,4 +134,4 @@ If you already have Python/R locally and just want to test quickly:
     Rscript src/R_code/main.R
 
 
-Still make sure src/data/train.csv and src/data/test.csv exist.
+Still make sure `src/data/train.csv` and `src/data/test.csv` exist.
