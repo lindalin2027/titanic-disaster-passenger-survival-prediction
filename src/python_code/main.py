@@ -5,35 +5,54 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
+from pathlib import Path
 
 # Functions to load training and test data
 def load_training_data():
-    # build path relative to repo root (the container WORKDIR is /app)
-    train_path = os.path.join("..", "data", "train.csv")
-    print(f"[INFO] loading training data from: {train_path}")
+    """Load the training data (train.csv) with robust path handling."""
+    base_dir = Path(__file__).resolve().parents[2]  # project root (/app in Docker)
+    data_path = base_dir / "src" / "data" / "train.csv"
 
-    # check that file exists
-    if not os.path.exists(train_path):
-        raise FileNotFoundError(f"[ERROR] could not find file at {train_path}")
+    print(f"[INFO] Loading training data from: {data_path}")
 
-    # load data
-    df = pd.read_csv(train_path)
-    print(f"[INFO] training data loaded. shape={df.shape}")
-    print(f"[INFO] columns: {list(df.columns)}")
+    if not data_path.exists():
+        raise FileNotFoundError(f"[ERROR] Could not find training data at: {data_path}")
+
+    df = pd.read_csv(data_path)
+    print(f"[INFO] Training data loaded. shape={df.shape}")
+    print(f"[INFO] Columns: {list(df.columns)}")
+
     return df
 
 def load_test_data():
-    test_path = os.path.join("..", "data", "test.csv")
-    print(f"[INFO] loading test data from: {test_path}")
+    """Load the testing data (test.csv) with robust path handling."""
+    base_dir = Path(__file__).resolve().parents[2]  # project root (/app in Docker)
+    data_path = base_dir / "src" / "data" / "test.csv"
 
-    if not os.path.exists(test_path):
-        raise FileNotFoundError(f"[ERROR] could not find file at {test_path}")
+    print(f"[INFO] Loading test data from: {data_path}")
 
-    df = pd.read_csv(test_path)
-    print(f"[INFO] test data loaded. shape={df.shape}")
-    print(f"[INFO] columns: {list(df.columns)}")
+    if not data_path.exists():
+        raise FileNotFoundError(f"[ERROR] Could not find test data at: {data_path}")
+
+    df = pd.read_csv(data_path)
+    print(f"[INFO] Test data loaded. shape={df.shape}")
+    print(f"[INFO] Columns: {list(df.columns)}")
+
     return df
 
+# Function to save predictions
+def save_predictions(prediction_df):
+    """Save prediction results to src/data/survival_predictions.csv."""
+    base_dir = Path(__file__).resolve().parents[2]  # project root (/app in Docker)
+    output_path = base_dir / "src" / "data" / "survival_predictions.csv"
+
+    print(f"[INFO] Saving predictions to: {output_path}")
+
+    # Ensure the directory exists
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    prediction_df.to_csv(output_path, index=False)
+    print(f"[INFO] Predictions saved successfully at {output_path}")
 
 # Preprocessing functions
 def preprocess_titanic_train(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series | None, pd.Series | None]:
@@ -159,6 +178,16 @@ def train_titanic_model(X_train: pd.DataFrame, y_train: pd.Series) -> Pipeline:
     return model
 
 
+def evaluate_training_accuracy(model: Pipeline, X_train: pd.DataFrame, y_train: pd.Series) -> float:
+    """
+    Evaluate the accuracy of a trained model on its training data.
+    Prints and returns the accuracy score.
+    """
+    y_pred = model.predict(X_train)
+    acc = accuracy_score(y_train, y_pred)
+    print(f"[INFO] Training accuracy: {acc:.4f}")
+    return acc
+
 # Prediction function
 def predict_titanic_survival(model: Pipeline, X_test: pd.DataFrame, test_ids: pd.Series) -> pd.DataFrame:
     """
@@ -210,6 +239,10 @@ if __name__ == "__main__":
     model = train_titanic_model(X_train, y_train)
     print("[INFO] model training completed.")
     print(model)
+
+    train_acc = evaluate_training_accuracy(model, X_train, y_train)
+    print(f"[INFO] Training accuracy: {train_acc:.4f}")
+
     print("---------------------------Model Training Done-------------------------\n")
 
     # Predict on test set
@@ -217,11 +250,14 @@ if __name__ == "__main__":
     prediction_df = predict_titanic_survival(model, X_test, test_ids)
     print("[INFO] prediction on test set completed.")
     print(f'the first few rows of the predicted dataframe are:\n{prediction_df.head()}')
-    print("------------------------Prediction on Test Set Done--------------------\n")
+    survival_rate = prediction_df["Survived"].mean() * 100
+    print(f"[INFO] Survival rate: {survival_rate:.2f}%")
+
+    print("----------------------Prediction on Test Set Done--------------------\n")
 
     # Save predictions to CSV
-    output_path = os.path.join("..", "data", "survival_predictions.csv")
-    prediction_df.to_csv(output_path, index=False)
+    save_predictions(prediction_df)
+
     print("-----------------------Predictions Saved to CSV------------------------")
-    print(f"[INFO] predictions saved to: {output_path}")
+    print(f"[INFO] predictions saved to: src/data/survival_predictions.csv")
     print("----------------------------------------------------------------------")
